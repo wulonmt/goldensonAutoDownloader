@@ -41,62 +41,66 @@ def getPage (url):
 # 設定搜尋條件(關鍵字/年份/篩選方式)
 set_keyword = input("輸入關鍵字: ")
 set_year = input("輸入年份(西元): ")  # 西元年 (空白代表不限制)
+set_total_years = input("輸入總共要過去幾年：") # (空白代表不限制)
 set_filter = input("輸入篩選代號(D代表以考試類組  P代表以考試科目 A代表不限制): ") # D代表以 考試類組  P代表以 考試科目 (空白代表不限制)
 
 #----------------使用者自訂區---------------------
+total_years = int(set_total_years) if len(set_total_years) > 0 else 0
+
+for previous_year in range(total_years):
+    search_year = str(int(set_year) - previous_year)
+    # 迴圈執行多頁
+    # 第一頁連結(為了找出總頁數用)
+    initial_url = 'http://goldensun.get.com.tw/exam/List.aspx?iPageNo=1&sFilter='+set_keyword+'&sFilterDate='+search_year+'&sFilterType='+set_filter
+    # initial_url = 'http://goldensun.get.com.tw/exam/List.aspx?iPageNo=1&sFilter=%e8%b3%87%e8%a8%8a&sFilterType=0'
+    total_page = getPage(initial_url) # 呼叫擷取總頁數function
+
+    if(total_page == 0): # 跳出提示
+        print(f"{search_year}年查無資料")
+        continue
+    
+    for i in range(1,total_page+1):
+        page = str(i)
+        print("目前位於第:"+page+"頁")
+        url = 'http://goldensun.get.com.tw/exam/List.aspx?iPageNo='+page+'&sFilter='+set_keyword+'&sFilterDate='+search_year+'&sFilterType='+set_filter
+        user_agent = UserAgent() # 隨機user-agent 躲掉防爬蟲機制
+        r = res.get(url, headers={ 'user-agent': user_agent.random })
+
+        # 利用bs4解析原始碼
+        soup = BeautifulSoup(r.text,"html.parser")
+        # print(soup.prettify())
+
+        # 擷取考古題列表
+        exam_list = soup.find_all('tr') 
+        #print(exam_list)
+        exam_list.pop(0) # 資料清洗 移除快速搜尋、標頭
+        exam_list.pop(0)
+
+        # # 建立datafrmae存放考古題
+        # df = pd.DataFrame(columns = ['index','group','subject','year','link'])
 
 
+        # 針對每一考古題(列)進行處理
+        for exam in exam_list:
+            ex_info = exam.find_all('td') # 將各個tr中許多td分割
+            # print(ex_info)
+            index = BeautifulSoup(ex_info[0].text,"html.parser").text
+            group = BeautifulSoup(ex_info[1].text,"html.parser").text
+            subject = BeautifulSoup(ex_info[2].text,"html.parser").text
+            year = BeautifulSoup(ex_info[3].text,"html.parser").text
+            link = 'http://goldensun.get.com.tw/exam/' + ex_info[4].find('a').get('href').replace('./','')
 
-# 第一頁連結(為了找出總頁數用)
-initial_url = 'http://goldensun.get.com.tw/exam/List.aspx?iPageNo=1&sFilter='+set_keyword+'&sFilterDate='+set_year+'&sFilterType='+set_filter
-# initial_url = 'http://goldensun.get.com.tw/exam/List.aspx?iPageNo=1&sFilter=%e8%b3%87%e8%a8%8a&sFilterType=0'
-total_page = getPage(initial_url) # 呼叫擷取總頁數function
+            # # 將考古題新增至dataframe
+            # df = df.append({'index':index, 'group':group, 'subject':subject, 'year':year, 'link':link}, ignore_index=True)
 
-if(total_page == 0): # 跳出提示
-    print('查無資料')
+            print('編號:'+index)
+            print('類組:'+group)
+            print('科目:'+subject)
+            print('年度:'+year)
+            print('連結:'+link)
+            downloadPDF(group,subject,year,link)
+            print('--------------------')
 
-# 迴圈執行多頁
-for i in range(1,total_page+1):
-    #print("目前位於第:"+str(i)+"頁")
-    page = str(i)
-    url = 'http://goldensun.get.com.tw/exam/List.aspx?iPageNo='+page+'&sFilter='+set_keyword+'&sFilterDate='+set_year+'&sFilterType='+set_filter
-    user_agent = UserAgent() # 隨機user-agent 躲掉防爬蟲機制
-    r = res.get(url, headers={ 'user-agent': user_agent.random })
-
-    # 利用bs4解析原始碼
-    soup = BeautifulSoup(r.text,"html.parser")
-    # print(soup.prettify())
-
-    # 擷取考古題列表
-    exam_list = soup.find_all('tr') 
-    #print(exam_list)
-    exam_list.pop(0) # 資料清洗 移除快速搜尋、標頭
-    exam_list.pop(0)
-
-    # # 建立datafrmae存放考古題
-    # df = pd.DataFrame(columns = ['index','group','subject','year','link'])
-
-
-    # 針對每一考古題(列)進行處理
-    for exam in exam_list:
-        ex_info = exam.find_all('td') # 將各個tr中許多td分割
-        # print(ex_info)
-        index = BeautifulSoup(ex_info[0].text,"html.parser").text
-        group = BeautifulSoup(ex_info[1].text,"html.parser").text
-        subject = BeautifulSoup(ex_info[2].text,"html.parser").text
-        year = BeautifulSoup(ex_info[3].text,"html.parser").text
-        link = 'http://goldensun.get.com.tw/exam/' + ex_info[4].find('a').get('href').replace('./','')
-
-        # # 將考古題新增至dataframe
-        # df = df.append({'index':index, 'group':group, 'subject':subject, 'year':year, 'link':link}, ignore_index=True)
-
-        print('編號:'+index)
-        print('類組:'+group)
-        print('科目:'+subject)
-        print('年度:'+year)
-        print('連結:'+link)
-        downloadPDF(group,subject,year,link)
-        print('--------------------')
 
     
 #print(df)
