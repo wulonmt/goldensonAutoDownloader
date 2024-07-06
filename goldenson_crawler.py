@@ -37,23 +37,25 @@ def getPage (url):
     return tmp
 
 #----------------使用者自訂區---------------------
-
+set_total_years = ''
 # 設定搜尋條件(關鍵字/年份/篩選方式)
 set_keyword = input("輸入關鍵字: ")
 set_year = input("輸入年份(西元): ")  # 西元年 (空白代表不限制)
-set_total_years = input("輸入總共要過去幾年：") # (空白代表不限制)
+if len(set_year) > 0:
+    set_total_years = input("輸入總共要過去幾年：") # (空白代表不限制)
 set_filter = input("輸入篩選代號(D代表以考試類組  P代表以考試科目 A代表不限制): ") # D代表以 考試類組  P代表以 考試科目 (空白代表不限制)
 
 #----------------使用者自訂區---------------------
-total_years = int(set_total_years) if len(set_total_years) > 0 else 0
+total_years = int(set_total_years) if len(set_total_years) > 0 else 1
 
 for previous_year in range(total_years):
-    search_year = str(int(set_year) - previous_year)
+    search_year = str(int(set_year) - previous_year) if len(set_year) > 0 else ''
     # 迴圈執行多頁
     # 第一頁連結(為了找出總頁數用)
     initial_url = 'http://goldensun.get.com.tw/exam/List.aspx?iPageNo=1&sFilter='+set_keyword+'&sFilterDate='+search_year+'&sFilterType='+set_filter
     # initial_url = 'http://goldensun.get.com.tw/exam/List.aspx?iPageNo=1&sFilter=%e8%b3%87%e8%a8%8a&sFilterType=0'
     total_page = getPage(initial_url) # 呼叫擷取總頁數function
+    breakpoint()
 
     if(total_page == 0): # 跳出提示
         print(f"{search_year}年查無資料")
